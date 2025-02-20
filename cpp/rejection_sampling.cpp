@@ -27,20 +27,7 @@
 #include <thread>
 #include <cmath>
 #include <vector>
-
-/*
-trapezoidal()
-    numerical integration technique which integrates a passed function over 
-*/
-double trapezoidal( double (*func)(double), const double a, const double b, int n)
-{
-    const double h = (b - a) / n;
-    double sum = 0.5 * (func(a) + func(b));
-    for (int i = 1; i < n; ++i) {
-        sum += func(a + i * h);
-    }
-    return sum * h;
-}
+#include "Integrate.h"
 
 /*
 This function is the cumulative fractional area covered by
@@ -77,16 +64,22 @@ std::vector<double> NgtD4_Di(const double D) {
     }
 
     std::vector<double> N = {};
+    /*
     for (int i = 0; i < Diam_Array.size(); i++) {
         double integral = quad(nDpm2, Diam_Array[i], std::inf )
         N.push_back()
     }
+        */
+    return N;
+}
 
+double test(double x) {
+    return std::exp(x*x);
 }
 
 int main() {
 
-
+    std::cout << integrate::trapezoidal(test, 0.0, 1.0, 1000) << std::endl;
 
     return EXIT_SUCCESS;
 }
