@@ -7,7 +7,7 @@
             "args": [
                 "-g",
                 "${file}",
-                "${workspaceFolder}\\cpp-library\\Integrate.cpp",
+                "${workspaceFolder}\\cpp-library\\Calculus.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "-I",
