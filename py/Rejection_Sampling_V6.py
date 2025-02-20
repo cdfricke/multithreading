@@ -122,20 +122,6 @@ def nDpm2(D, Shape = "Sphere", Distribution = "CE3"):
     n = GeoConst*k*qk*np.exp(-qk*D)/D**2
     return n
 
-def DnDpm2(D, Shape = "Cube"):
-    ## This is the same as nDpm2 but multiplied by D
-    ## used for finding the average rock size
-    if(Shape == "Sphere" or Shape == "Torus"):
-          GeoConst = 4/np.pi
-    if(Shape == "Cube" or Shape == "Pyramid"):
-          GeoConst = 1
-    if(Shape == "Cuboid"):
-          GeoConst = 1/0.8
-    k = 0.0021
-    qk = 0.5648 + 0.01258/k
-    n = GeoConst*k*qk*np.exp(-qk*D)/D
-    return n
-
 def nDpm3(D, Shape = "Sphere", Distribution = "CE3"):
     ## This is the number density of rocks with diameter D per m^3. 
     ## This here is a complete guess on how to extend a 2D density into a 3D density
