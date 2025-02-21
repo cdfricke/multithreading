@@ -32,11 +32,9 @@
 
 /* DEFINE SHAPES */
 #define SPHERE 0
-#define TORUS 1
-#define CUBE 2
-#define PYRAMID 3
-#define CUBOID_A 4
-#define CUBOID_B 5
+#define CUBE 1
+#define CUBOID_A 2
+#define CUBOID_B 3
 
 /* DEFINE DISTRIBUTIONS */
 #define CE3 0
@@ -66,38 +64,50 @@ double NgtD4(double D, const int SHAPE);
 double hpD(double x);
 double bpD(double x);
 
-Vector NgtD4_Di(double D, const double INF, const int N);
-Vector N_SVII(double Dmin, double Dmax);   // TODO: Do we want/need these implemented??
-Vector F_SVII(double Dmin, double Dmax);   // ??
-Vector n_a_SVII(double D);                 // ?? also is D a list or a single val
-Vector n_V_SVII(double D);                 // ??
+double F_SVII(double Dmin, double Dmax);
+double n_a_SVII(double D);
+double n_V_SVII(double D);
+Vector N_SVII(double Dmin, double Dmax);
 
-// TODO: Does this function really NEED to return a list of D?
-// Just create D on the spot, it's arange()?
+Vector NgtD4_Di(double D, const double INF, const int N);
 Vector CheckNgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A);
 Vector CheckNgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A);
-
 Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A, const int SHAPE);
 Vector CheckFgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A);
 
 
 /* MAIN PROGRAM */
-int main() {
-
+int main(int argc, char **argv)
+{
+    // Program Parameter control
+    int SHAPE;
+    double DMIN, VOL;
+    if (argc == 1) {
+        // DEFAULT PARAMS
+        SHAPE = SPHERE;
+        DMIN = 0.01;
+        VOL = 100.*100.*100.;
+    }
+    else if (argc == 4)
+    {
+        // PASSED PARAMS
+        std::cout << "Using Passed Parameters..." << std::endl;
+        SHAPE = std::atoi(argv[1]);
+        DMIN = std::atof(argv[2]);
+        VOL = std::atof(argv[3]);
+    }
     
 
     return EXIT_SUCCESS;
 }
-
-
 
 /* FUNCTION DEFINITIONS */
 
 /* setGeoConst() */
 /* sets GeoConst global var. */
 void setGeoConst(int SHAPE) {
-    if (SHAPE == SPHERE || SHAPE == PYRAMID) GeoConst = 4.0 / PI;
-    else if (SHAPE == CUBE || SHAPE == PYRAMID) GeoConst = 1.0;
+    if (SHAPE == SPHERE) GeoConst = 4.0 / PI;
+    else if (SHAPE == CUBE) GeoConst = 1.0;
     else if (SHAPE == CUBOID_A) GeoConst = 1.0 / (0.8);
     else if (SHAPE == CUBOID_B) GeoConst = 1.0 / (0.8 * 0.54);
     else { 
@@ -147,6 +157,10 @@ double nDpm3(double D, const int SHAPE, const int DIST) {
         double qk = 0.5648 + 0.01258 / k;
         return GeoConst * k * qk * std::exp(-qk * D) / (D*D*D);
     }
+    else {
+        std::cout << "Something went wrong! (Error 03)\n";
+        exit(3);
+    }
 }
 
 /* DnDpm3() */
@@ -187,12 +201,12 @@ double bpD(double x) {
 /* NgtD4_Di() */
 /* INF requires a numerical approximation for infinity. np.inf aint 'round here partner */
 /* N is the number of samples for the integration. Larger INF requires more samples, so choose wisely */
-std::vector<double> NgtD4_Di(double D, const double INF, const int N) {
+Vector NgtD4_Di(double D, const double INF, const int N) {
 
     using calculus::integral::monteCarlo;
     setGeoConst(SPHERE); // TODO: CHECK WHETHER THIS IS THE RIGHT MOVE HERE
     // combined two for loops into one from Rejection_Sampling_V6.py
-    std::vector<double> results = {};
+    Vector results = {};
     for (double d = D; d < 3.0; d += 0.001) {
         double integral = monteCarlo(nDpm2, d, INF, N);
         results.push_back(integral);
@@ -267,4 +281,31 @@ Vector CheckFgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, do
         F_area.push_back(cuml / A);
     }
     return F_area;
+}
+
+/* UNUSED FUNCS */
+double F_SVII(double Dmin, double Dmax) {
+    double gamma = 1.8;
+    double K = 7.9e3 / std::pow(1000., gamma);
+    double coeff = gamma * K / (2 - gamma);
+    return coeff * (std::pow(Dmax,(2 - gamma)) - std::pow(Dmin, (2 - gamma)));
+}
+double n_a_SVII(double D) {
+    double gamma = 1.8;
+    double K = 7.9e3 / std::pow(1000., gamma);
+    return gamma * K * std::pow(D, -(gamma + 1));
+}
+double n_V_SVII(double D) {
+    double gamma = 1.8;
+    double K = 7.9e3 / std::pow(1000., gamma);
+    return gamma * K * std::pow(D, -(gamma + 2));
+}
+Vector N_SVII(double Dmin, double Dmax) {
+    double gamma = 1.8;
+    double K = 7.9e3 / std::pow(1000., gamma);
+    Vector N = {};
+    for (double d = Dmin; d < Dmax; d += 0.001) {
+        N.push_back(K * std::pow(d, -gamma));
+    }
+    return N;
 }

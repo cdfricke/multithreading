@@ -328,6 +328,7 @@ for ii in functions:
                 if(z0 > xyz[iii][2] - rocks[iii][2]/2 and z0 < xyz[iii][2] + rocks[iii][2]/2):
                     rocks_in_slice.append(rocks[iii])
                      
+        # WHAT
          Sampled_D, SAMPLED_NGTD = CheckNgtD(rocks_in_slice, D, Area, Dmax, Shape = Shape)
          Sampled_D, SAMPLED_FGTD = CheckFgtD(rocks_in_slice, D, Area, Dmax, Shape = Shape)
          Sampled_NgtD.append(SAMPLED_NGTD)
