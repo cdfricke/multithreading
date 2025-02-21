@@ -25,10 +25,9 @@
 // Desc: C++ translation and multithreading version of Rejection_Sampling_V6.py by Payton Linton (linton.93@osu.edu)
 
 #include <iostream>
-#include <thread>
+#include <cstdlib>
 #include <cmath>
 #include <vector>
-#include <string>
 #include "Calculus.h"
 
 /* DEFINE SHAPES */

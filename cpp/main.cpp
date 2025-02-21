@@ -1,6 +1,5 @@
 #include <iostream>
 #include <thread>
-#include "Integrate.h"
 
 #define EX1
 
@@ -30,4 +29,5 @@
         std::cin.get();
         return 0;
     }
+    
 #endif
