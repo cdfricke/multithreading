@@ -50,15 +50,18 @@ typedef std::vector<Cuboid> CuboidVector;
 
 /* DEFINE GLOBAL VARS */
 static const double PI = 4.0 * std::atan(1);    // PI
-static double GeoConst = 0.0;                   // controlled by individual funcs with setGeoConst()
+static double GeoConst = 0.0;                   // INIT WITH setGeoConst();
+static double k = 0.0;                          // INIT WITH setDist();
+static double qk = 0.0;                         // INIT WITH setDist();
 
 /* FUNCTION PROTOTYPES */
 void setGeoConst(int SHAPE);
+void setDist(int DIST);
 double Fk(double D);
 double Fk_Di(double D);
 double nDpm2(double D);
-double nDpm3(double D, const int SHAPE, const int DIST);
-double DnDpm3(double D, const int SHAPE, const int DIST);
+double nDpm3(double D);
+double DnDpm3(double D);
 double expintA(double x);
 double NgtD4(double D, const int SHAPE);
 double hpD(double x);
@@ -79,27 +82,32 @@ Vector CheckFgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, do
 /* MAIN PROGRAM */
 int main(int argc, char **argv)
 {
-    // Program Parameter control
-    int SHAPE;
-    double DMIN, VOL;
-    if (argc == 1) {
-        // DEFAULT PARAMS
+    int SHAPE, DIST;
+    double DMIN, DMAX, VOL; // D -> DMIN, Dmax -> DMAX, Area*Depth -> VOL 
+    if (argc == 1) { // defaults
         SHAPE = SPHERE;
+        DIST = CE3;
         DMIN = 0.01;
+        DMAX = 3.0;
         VOL = 100.*100.*100.;
     }
-    else if (argc == 4)
-    {
-        // PASSED PARAMS
+    else if (argc == 5) { // user specified
         std::cout << "Using Passed Parameters..." << std::endl;
         SHAPE = std::atoi(argv[1]);
         DMIN = std::atof(argv[2]);
-        VOL = std::atof(argv[3]);
+        DMAX = std::atof(argv[3]);
+        VOL = std::atof(argv[4]);
     }
     
+    using calculus::integral::simpsons; // integral routine
+    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
+    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
 
     return EXIT_SUCCESS;
 }
+
+
+
 
 /* FUNCTION DEFINITIONS */
 
@@ -116,25 +124,35 @@ void setGeoConst(int SHAPE) {
     }
 }
 
+/* setDist() */
+/* sets Distribution (either CE3 or CE4) */
+/* sets global vars k, qk */
+void setDist(int DIST)
+{
+    if (DIST == CE3)
+    {
+        k = 0.0125;
+        qk = 1.743;
+    }
+    else if (DIST == CE4)
+    {
+        k = 0.0021;
+        qk = 0.5648 + 0.01258 / k;
+    }
+    else {
+        std::cout << "Something went wrong! (Error 04)\n";
+    }
+}
 
 /* Fk() */
+/* k and qk set externally with global vars. Must be set prior to using this func with setDist() */
 double Fk(double D) {
-    double k = 0.0021;
-    double qk = 0.5648 + (0.01258 / k);
     return k * std::exp(-qk * D);
 }
-
-
-/* Fk_Di() */
-double Fk_Di(double D) {
-    double k = 0.0135;
-    double qk = 1.734;
-    return k * std::exp(-qk * D);
-}
-
 
 /* nDpm2() */
-/* We integrate this function, so GeoConst needs to be set externally! */
+/* We integrate this function, so GeoConst, qk, k need to be set externally! */
+/* These consts are controlled by the Distribution and Shape being passed to setDist() and setGeoConst() */
 double nDpm2(double D) {
     double k = 0.0135;
     double qk = 1.734;
@@ -143,29 +161,15 @@ double nDpm2(double D) {
 
 
 /* nDpm3() */
-double nDpm3(double D, const int SHAPE, const int DIST) {
-    setGeoConst(SHAPE);
-    if (DIST == CE3)
-    {
-        double k = 0.0135;
-        double qk = 1.734;
-        return GeoConst * k * qk * std::exp(-qk * D) / (D*D*D);
-    }
-    else if (DIST == CE4)
-    {
-        double k = 0.0021;
-        double qk = 0.5648 + 0.01258 / k;
-        return GeoConst * k * qk * std::exp(-qk * D) / (D*D*D);
-    }
-    else {
-        std::cout << "Something went wrong! (Error 03)\n";
-        exit(3);
-    }
+/* We integrate this function, so GeoConst, qk, k need to be set externally! */
+double nDpm3(double D) {
+    return GeoConst * k * qk * std::exp(-qk * D) / (D*D*D);
 }
 
 /* DnDpm3() */
-double DnDpm3(double D, const int SHAPE, const int DIST) {
-    return D * nDpm3(D, SHAPE, DIST);
+/* We integrate this function, so GeoConst, qk, k need to be set externally! */
+double DnDpm3(double D) {
+    return D * nDpm3(D);
 }
 
 
