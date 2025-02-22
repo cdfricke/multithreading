@@ -40,13 +40,18 @@
 #define CE3 0
 #define CE4 1
 
-struct Cuboid
-{
-    double x, y, z;
-};
+/* MACROS */
+#define RAND (double(std::rand())/RAND_MAX)   // RANDOM double between 0.0 and 1.0
 
+/* CUSTOM TYPES */
+struct Coord
+{
+    double x;
+    double y;
+    double z;
+};
 typedef std::vector<double> Vector;
-typedef std::vector<Cuboid> CuboidVector;
+typedef std::vector<Coord> CoordVector;
 
 /* DEFINE GLOBAL VARS */
 static const double PI = 4.0 * std::atan(1);    // PI
@@ -58,7 +63,7 @@ static double qk = 0.0;                         // INIT WITH setDist();
 void setGeoConst(int SHAPE);
 void setDist(int DIST);
 double Fk(double D);
-double Fk_Di(double D);
+//double Fk_Di(double D);
 double nDpm2(double D);
 double nDpm3(double D);
 double DnDpm3(double D);
@@ -74,39 +79,128 @@ Vector N_SVII(double Dmin, double Dmax);
 
 Vector NgtD4_Di(double D, const double INF, const int N);
 Vector CheckNgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A);
-Vector CheckNgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A);
+Vector CheckNgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A);
 Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A, const int SHAPE);
-Vector CheckFgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A);
+Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A);
+
+// equivalent to np.mean(matrix, axis=0)
+Vector meanAXIS0(std::vector<Vector>& matrix);
 
 
 /* MAIN PROGRAM */
 int main(int argc, char **argv)
 {
     int SHAPE, DIST;
-    double DMIN, DMAX, VOL; // D -> DMIN, Dmax -> DMAX, Area*Depth -> VOL 
+    double DMIN, DMAX, DEPTH, AREA; // D, Dmax, Depth, Area -> DMIN, DMAX, DEPTH, AREA 
     if (argc == 1) { // defaults
+        std::cout << "Using DEFAULT Parameters..." << std::endl;
         SHAPE = SPHERE;
         DIST = CE3;
-        DMIN = 0.01;
+        DMIN = 0.05;
         DMAX = 3.0;
-        VOL = 100.*100.*100.;
+        DEPTH = 10.0;
+        AREA = 50.0*50.0;
     }
-    else if (argc == 5) { // user specified
-        std::cout << "Using Passed Parameters..." << std::endl;
+    else if (argc == 7) { // user specified
+        std::cout << "Using GIVEN Parameters..." << std::endl;
         SHAPE = std::atoi(argv[1]);
-        DMIN = std::atof(argv[2]);
-        DMAX = std::atof(argv[3]);
-        VOL = std::atof(argv[4]);
+        DIST = std::atoi(argv[2]);
+        DMIN = std::atof(argv[3]);
+        DMAX = std::atof(argv[4]);
+        DEPTH = std::atof(argv[5]);
+        AREA = std::atof(argv[6]);
     }
-    
-    using calculus::integral::simpsons; // integral routine
-    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
-    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+    else {
+        std::cout << "Something went wrong! (Error 05)\n";
+        exit(5);
+    }
+
+    // CRITICAL SPLIT IN FUNCTIONALITY HERE, FOR NOW ASSUME !CUBOID
+    if (SHAPE != CUBOID_A && SHAPE != CUBOID_B)
+    {
+        setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
+        setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+
+        // calculate average diam in the space
+        using calculus::integral::monteCarlo; // integral routine
+        double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
+        std::cout << "Average Diameter: " << D_ave << std::endl;
+
+        double OccVol = 0.0, Nrocks = 0.0;
+
+        Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;  // !CUBOID
+        std::cout << "NSphere: " << Nrocks << std::endl;
+
+        // start for ii in functions:
+        Vector rocks = {};  // !CUBOID
+        CoordVector rockCoords = {}; // xyz -> rockCoords
+        std::vector<Vector> Sampled_NgtD = {};
+        std::vector<Vector> Sampled_FgtD = {};
+        Vector Avg_Sampled_NgtD = {}, Avg_Sampled_FgtD = {};
+
+        // sample the function and populate the volume with rocks
+        for (int i = 0; i < int(Nrocks); i++) {
+            if (i % 1000 == 0) {std::cout << i << '\n';}
+
+            // THESE VARIABLE NAMES ARE HORRIBLE STOP
+            double fx = -99.0, fxmax = nDpm3(DMIN);
+            double W = fxmax, x = 0.0;
+            while (W > fx) {
+                W = fxmax * RAND;
+                x = (DMAX - DMIN) * RAND + DMIN;
+                fx = nDpm3(x);
+            }
+            // generate random coords for this iteration
+            Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
+            rockCoords.push_back(coords);
+
+            rocks.push_back(x);
+            if (SHAPE == CUBE) {
+                OccVol += x*x*x;
+            }
+            else if (SHAPE == SPHERE) {
+                OccVol += (4.0/3)*PI*(x*x*x) / 8;
+            }
+            else {
+                std::cout << "Something went wrong! (Error 06)\n";
+                exit(6);
+            }
+            
+        }
+        // Now we need to check that if we take any random slice in z, 
+        // on average the original distributions are preserved
+        for (int i = 0; i < 1000; i++) {
+            if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
+            
+            double z0 = DEPTH * RAND;
+            Vector rocksInSlice = {};
+            for (int j = 0; j < int(rocks.size()); j++) {
+                if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
+                    rocksInSlice.push_back(rocks[j]);
+                }
+            }
+            
+            Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
+            Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
+            Sampled_NgtD.push_back(SAMPLED_FGTD);
+            Sampled_FgtD.push_back(SAMPLED_NGTD);
+                
+        }
+        Avg_Sampled_NgtD = meanAXIS0(Sampled_NgtD);
+        Avg_Sampled_FgtD = meanAXIS0(Sampled_FgtD);
+
+    }
+    else if (SHAPE == CUBOID_A)
+    {
+        return EXIT_FAILURE;
+    }
+    else if (SHAPE == CUBOID_B)
+    {
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
-
-
 
 
 /* FUNCTION DEFINITIONS */
@@ -141,6 +235,7 @@ void setDist(int DIST)
     }
     else {
         std::cout << "Something went wrong! (Error 04)\n";
+        exit(4);
     }
 }
 
@@ -237,14 +332,16 @@ Vector CheckNgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A
     return N_rocks;
 }
 /* CUBOID VERSION */
-Vector CheckNgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A)
+/* Coord is just a general struct for a set of x, y, and z values. */
+/* It is valid for defining a cuboid shape as well, then. */
+Vector CheckNgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A)
 {
     Vector N_rocks = {};
     // first off, just iterate based on params
     for (double d = Dmin; d < Dmax; d += Dstep) {
         int cuml = 0;
-        // "rock" is now a Cuboid, with x, y, and z values
-        for (Cuboid rock : rocks) {
+        // "rock" is now a Cuboid (Coord), with x, y, and z values
+        for (Coord rock : rocks) {
             if (rock.x >= d) cuml++;
         }
         N_rocks.push_back(cuml / A);
@@ -273,13 +370,13 @@ Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A
     return F_area;
 }
 /* CUBOID VERSION */
-Vector CheckFgtD(CuboidVector& rocks, double Dmin, double Dmax, double Dstep, double A)
+Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A)
 {
     Vector F_area = {};
     for (double d = Dmin; d < Dmax; d += Dstep) {
         double cuml = 0.0;
-        // "rock" is now a Cuboid
-        for (Cuboid rock : rocks) {
+        // "rock" is now a Cuboid (Coord), with x, y, and z values
+        for (Coord rock : rocks) {
             cuml += rock.x * rock.y;
         }
         F_area.push_back(cuml / A);
@@ -312,4 +409,19 @@ Vector N_SVII(double Dmin, double Dmax) {
         N.push_back(K * std::pow(d, -gamma));
     }
     return N;
+}
+
+Vector meanAXIS0(std::vector<Vector>& matrix) {
+    int rows = matrix.size();
+    int cols = matrix[0].size();
+    Vector avgs(cols, 0.0);
+
+    // take the average of each column (i.e. average of the i'th element of each Vector)
+    for (int j = 0; j < cols; j++) {
+        for (int i = 0; i < rows; i++) {
+            avgs[j] += matrix[i][j];
+        }
+        avgs[j] /= rows;
+    }
+    return avgs;
 }
