@@ -23,25 +23,24 @@
 // file: rejection_sampling.cpp
 // Date: 19-FEB-2025
 // Desc: C++ translation and multithreading version of Rejection_Sampling_V6.py by Payton Linton (linton.93@osu.edu)
-
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
 #include <vector>
+#include "Calculus.h"
+#include "Stats.h"
 #ifdef WRITE_DATA
     #include <fstream>
     #include <string>
 #endif
-#include "Calculus.h"
-#include "Stats.h"
 
-/* DEFINE SHAPES */
+/* SHAPES */
 #define SPHERE 0
 #define CUBE 1
 #define CUBOID_A 2
 #define CUBOID_B 3
 
-/* DEFINE DISTRIBUTIONS */
+/* DISTRIBUTIONS */
 #define CE3 0
 #define CE4 1
 
@@ -49,26 +48,35 @@
 #define RAND (double(std::rand())/RAND_MAX)   // RANDOM double between 0.0 and 1.0
 
 /* CUSTOM TYPES */
-struct Coord
-{
+struct Coord {  // used for position of rocks and dimensions of cuboids
     double x;
     double y;
     double z;
 };
+struct ProgramParams {  // stores all params of the main program.
+    // CONTROL DEFAULT PARAMS HERE 
+    int SHAPE = SPHERE;
+    int DIST = CE3;
+    double DMIN = 0.05;
+    double DMAX = 3.0;
+    double DSTEP = 0.001;
+    double DEPTH = 10.0;
+    double AREA = 50.0*50.0;
+};
 typedef std::vector<double> Vector;
 typedef std::vector<Coord> CoordVector;
 
-/* DEFINE GLOBAL VARS */
+/* GLOBAL VARS */
 static const double PI = 4.0 * std::atan(1);    // PI
 static double GeoConst = 0.0;                   // INIT WITH setGeoConst();
 static double k = 0.0;                          // INIT WITH setDist();
 static double qk = 0.0;                         // INIT WITH setDist();
 
 /* HELPER FUNCTION PROTOTYPES */
+ProgramParams setParams(int argc, char** argv);
 void setGeoConst(int SHAPE);
 void setDist(int DIST);
 double Fk(double D);
-//double Fk_Di(double D);
 double nDpm2(double D);
 double nDpm3(double D);
 double DnDpm3(double D);
@@ -87,63 +95,39 @@ Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A
 Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A);
 
 /* MAIN FUNCTION PROTOTYPES */
-int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA);
-int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA);
+int theBigOne_NonCuboid(const ProgramParams& P, std::pair<int, int> loopRange);
+int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange);
 
 /* MAIN PROGRAM */
 int main(int argc, char **argv)
 {
-    int SHAPE, DIST;
-    double DMIN, DMAX, DEPTH, AREA;
-    if (argc == 1) { // defaults
-        std::cout << "Using DEFAULT Parameters..." << std::endl;
-        SHAPE = SPHERE;
-        DIST = CE3;
-        DMIN = 0.05;
-        DMAX = 3.0;
-        DEPTH = 10.0;
-        AREA = 50.0*50.0;
-    }
-    else if (argc == 7) { // user specified
-        std::cout << "Using GIVEN Parameters..." << std::endl;
-        SHAPE = std::atoi(argv[1]);
-        DIST = std::atoi(argv[2]);
-        DMIN = std::atof(argv[3]);
-        DMAX = std::atof(argv[4]);
-        DEPTH = std::atof(argv[5]);
-        AREA = std::atof(argv[6]);
-    }
-    else {
-        std::cout << "Something went wrong! (Error 05)\n";
-        exit(5);
-    }
+    ProgramParams P = setParams(argc, argv);
 
     // CRITICAL SPLIT IN FUNCTIONALITY HERE
-    if (SHAPE == CUBOID_A || SHAPE == CUBOID_B)
+    if (P.SHAPE == CUBOID_A || P.SHAPE == CUBOID_B)
     {
-        // TODO: IMPLEMENT THIS BRANCH
-        return theBigOne_Cuboid(SHAPE, DIST, DMIN, DMAX, 0.001, DEPTH, AREA);
+        return theBigOne_Cuboid(P, {0,1000});
     }
     else {
-        return theBigOne_NonCuboid(SHAPE, DIST, DMIN, DMAX, 0.001, DEPTH, AREA);
+        return theBigOne_NonCuboid(P, {0,1000});
     }
 }
 
 
 /* MAIN FUNCTION DEFINITIONS */
-int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA) {
+int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
 
-    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
-    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+    setGeoConst(P.SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
+    setDist(P.DIST);                      // k and qk fixed for duration of main() based on DIST
 
     // calculate average diam in the space
     using calculus::integral::monteCarlo;
-    double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
+    double D_ave = monteCarlo(DnDpm3, P.DMIN, P.DMAX, 10000) / monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000);
     std::cout << "Average Diameter: " << D_ave << std::endl;
 
     double OccVol = 0.0, Nrocks = 0.0;
 
-    Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;
+    Nrocks = monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000) * P.DEPTH * P.AREA;
     std::cout << "NSphere: " << Nrocks << std::endl;
 
     // main arrays to build
@@ -158,23 +142,23 @@ int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, cons
         if (i % 1000 == 0) {std::cout << i << '\n';}
 
         // THESE VARIABLE NAMES ARE HORRIBLE STOP
-        double fx = -99.0, fxmax = nDpm3(DMIN);
+        double fx = -99.0, fxmax = nDpm3(P.DMIN);
         double W = fxmax, x = 0.0;
         while (W > fx) {
             W = fxmax * RAND;
-            x = (DMAX - DMIN) * RAND + DMIN;
+            x = (P.DMAX - P.DMIN) * RAND + P.DMIN;
             fx = nDpm3(x);
         }
 
         // generate random coords for this iteration
-        Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
+        Coord coords = { std::sqrt(P.AREA) * RAND, std::sqrt(P.AREA) * RAND, P.DEPTH * RAND };
         rockCoords.push_back(coords);
         rocks.push_back(x);
 
-        if (SHAPE == CUBE) {
+        if (P.SHAPE == CUBE) {
             OccVol += x*x*x;
         }
-        else if (SHAPE == SPHERE) {
+        else if (P.SHAPE == SPHERE) {
             OccVol += (4.0/3)*PI*(x*x*x) / 8;
         }
         else {
@@ -188,16 +172,16 @@ int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, cons
     for (int i = 0; i < 1000; i++) {
         if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
             
-        double z0 = DEPTH * RAND;
+        double z0 = P.DEPTH * RAND;
         Vector rocksInSlice = {};
         for (int j = 0; j < int(rocks.size()); j++) {
             if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
                 rocksInSlice.push_back(rocks[j]);
             }
         }
-            
-        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
-        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
+
+        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA);
+        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA, P.SHAPE);
         Sampled_NgtD.push_back(SAMPLED_FGTD);
         Sampled_FgtD.push_back(SAMPLED_NGTD);
                 
@@ -205,21 +189,26 @@ int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, cons
     Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
     Avg_Sampled_FgtD = stats::mean(Sampled_FgtD, 0);
 
-
     #ifdef WRITE_DATA
         using std::string, std::to_string;
         std::cout << "Writing arrays to files..." << std::endl;
         string shapeStr;
-        if (SHAPE == SPHERE) {shapeStr = "SPHERE";}
-        else if (SHAPE == CUBE) {shapeStr = "CUBE";}
+        if (P.SHAPE == SPHERE)
+        {
+            shapeStr = "SPHERE";
+        }
+        else if (P.SHAPE == CUBE)
+        {
+            shapeStr = "CUBE";
+        }
         else {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
-        string fileName = "./data/Rock_Data_" + to_string(AREA) + "XY_" + to_string(DEPTH) + "Z_" + shapeStr + ".csv";
+        string fileName = "./data/Rock_Data_" + to_string(P.AREA) + "XY_" + to_string(P.DEPTH) + "Z_" + shapeStr + ".csv";
         std::ofstream fout(fileName);
         while (fout.is_open()) {
-            fout << "Diameter (m),x (m),y (m), z (m)\n";
+            fout << "Diameter (m),x (m),y (m),z (m)\n";
             for (int i = 0; i < int(rocks.size()); i++) {
                 fout << rocks[i] << ',' << rockCoords[i].x << ',' << rockCoords[i].y << ',' << rockCoords[i].z << '\n';
             }
@@ -231,24 +220,23 @@ int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, cons
     return EXIT_SUCCESS;
 }
 
-// TODO: CORRECT FUNCTIONALITY FOR CUBOID_A OR CUBOID_B
-int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA) {
+int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
 
-    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
-    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+    setGeoConst(P.SHAPE);               // geoConst fixed for duration of main() based on SHAPE
+    setDist(P.DIST);                    // k and qk fixed for duration of main() based on DIST
 
     // calculate average diam in the space
     using calculus::integral::monteCarlo;
-    double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
+    double D_ave = monteCarlo(DnDpm3, P.DMIN, P.DMAX, 10000) / monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000);
     std::cout << "Average Diameter: " << D_ave << std::endl;
 
     double OccVol = 0.0, Nrocks = 0.0;
-
-    Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;
+    double INF = 1000.0;
+    Nrocks = monteCarlo(nDpm3, P.DMIN, INF, 100000) * P.DEPTH * P.AREA;
     std::cout << "NSphere: " << Nrocks << std::endl;
 
     // main arrays to build
-    Vector rocks = {};
+    CoordVector rocks = {};
     CoordVector rockCoords = {}; // xyz
     std::vector<Vector> Sampled_NgtD = {};
     std::vector<Vector> Sampled_FgtD = {};
@@ -258,47 +246,56 @@ int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const d
     for (int i = 0; i < int(Nrocks); i++) {
         if (i % 1000 == 0) {std::cout << i << '\n';}
 
-        // THESE VARIABLE NAMES ARE HORRIBLE STOP
-        double fx = -99.0, fxmax = nDpm3(DMIN);
+        // This loop chooses x
+        double fx = -99.0, fxmax = nDpm3(P.DMIN);
         double W = fxmax, x = 0.0;
         while (W > fx) {
             W = fxmax * RAND;
-            x = (DMAX - DMIN) * RAND + DMIN;
+            x = (P.DMAX - P.DMIN) * RAND + P.DMIN;
             fx = nDpm3(x);
         }
 
-        // generate random coords for this iteration
-        Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
+        // These loops choose h and b
+        double b = 0.0, bx = 0.0, h = 0.0, hx = 0.0;
+        double fb = -99.0, fh = -99.0;
+        double bymax = 1.0, hymax = 1.0;
+        while (bymax > fb) {
+            bx = RAND;
+            bymax = RAND;
+            fb = bpD(bx);
+        }
+        while (hymax > fh)
+        {
+            hx = RAND;
+            hymax = RAND;
+            fh = hpD(hx);
+        }
+        h = hx * x;
+        b = bx * x;
+        // create rock and give it random coords within the volume
+        Coord ROCK = {x, b, h};
+        Coord coords = {std::sqrt(P.AREA) * RAND, std::sqrt(P.AREA) * RAND, P.DEPTH * RAND};
         rockCoords.push_back(coords);
-        rocks.push_back(x);
+        rocks.push_back(ROCK);
 
-        if (SHAPE == CUBE) {
-            OccVol += x*x*x;
-        }
-        else if (SHAPE == SPHERE) {
-            OccVol += (4.0/3)*PI*(x*x*x) / 8;
-        }
-        else {
-            std::cout << "Something went wrong! (Error 06)\n";
-            exit(6);
-        }
+        OccVol += OccVol + (x*b*h);
     }
 
     // Now we need to check that if we take any random slice in z, 
     // on average the original distributions are preserved
     for (int i = 0; i < 1000; i++) {
         if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
-            
-        double z0 = DEPTH * RAND;
-        Vector rocksInSlice = {};
+
+        double z0 = P.DEPTH * RAND;
+        CoordVector rocksInSlice = {};
         for (int j = 0; j < int(rocks.size()); j++) {
-            if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
+            if (z0 > (rockCoords[j].z - rocks[j].z/2.0) && z0 < (rockCoords[j].z + rocks[j].z/2.0)) {
                 rocksInSlice.push_back(rocks[j]);
             }
         }
-            
-        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
-        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
+
+        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA);
+        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA);
         Sampled_NgtD.push_back(SAMPLED_FGTD);
         Sampled_FgtD.push_back(SAMPLED_NGTD);
                 
@@ -311,18 +308,29 @@ int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const d
         using std::string, std::to_string;
         std::cout << "Writing arrays to files..." << std::endl;
         string shapeStr;
-        if (SHAPE == SPHERE) {shapeStr = "SPHERE";}
-        else if (SHAPE == CUBE) {shapeStr = "CUBE";}
+        if (P.SHAPE == CUBOID_A)
+        {
+            shapeStr = "CUBOID_A";
+        }
+        else if (P.SHAPE == CUBOID_B)
+        {
+            shapeStr = "CUBOID_B";
+        }
         else {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
-        string fileName = "./data/Rock_Data_" + to_string(AREA) + "XY_" + to_string(DEPTH) + "Z_" + shapeStr + ".csv";
+        string fileName = "./data/Rock_Data_" + to_string(P.AREA) + "XY_" + to_string(P.DEPTH) + "Z_" + shapeStr + ".csv";
         std::ofstream fout(fileName);
         while (fout.is_open()) {
-            fout << "Diameter (m),x (m),y (m), z (m)\n";
+            fout << "Diameter (m),b (m),h (m),x (m),y (m),z (m)\n";
             for (int i = 0; i < int(rocks.size()); i++) {
-                fout << rocks[i] << ',' << rockCoords[i].x << ',' << rockCoords[i].y << ',' << rockCoords[i].z << '\n';
+                fout << rocks[i].x << ',' 
+                    << rocks[i].y << ',' 
+                    << rocks[i].z << ',' 
+                    << rockCoords[i].x << ',' 
+                    << rockCoords[i].y << ',' 
+                    << rockCoords[i].z << '\n';
             }
             fout.close();
         }
@@ -334,9 +342,36 @@ int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const d
 
 /* HELPER FUNCTIONS */
 
+/* setParams() */
+ProgramParams setParams(int argc, char** argv) {
+
+    ProgramParams P;
+
+    if (argc == 1) { // defaults
+        std::cout << "Using DEFAULT Parameters..." << std::endl;
+    }
+    else if (argc == 8) { // user specified
+        std::cout << "Using GIVEN Parameters..." << std::endl;
+        P.SHAPE = std::atoi(argv[1]);
+        P.DIST = std::atoi(argv[2]);
+        P.DMIN = std::atof(argv[3]);
+        P.DMAX = std::atof(argv[4]);
+        P.DSTEP = std::atof(argv[5]);
+        P.DEPTH = std::atof(argv[6]);
+        P.AREA = std::atof(argv[7]);
+        return P;
+    }
+    else {
+        std::cout << "Something went wrong! (Error 05)\n";
+        exit(5);
+    }
+    return P;
+}
+
 /* setGeoConst() */
 /* sets GeoConst global var. */
-void setGeoConst(int SHAPE) {
+void setGeoConst(int SHAPE)
+{
     if (SHAPE == SPHERE) GeoConst = 4.0 / PI;
     else if (SHAPE == CUBE) GeoConst = 1.0;
     else if (SHAPE == CUBOID_A) GeoConst = 1.0 / (0.8);
@@ -352,13 +387,11 @@ void setGeoConst(int SHAPE) {
 /* sets global vars k, qk */
 void setDist(int DIST)
 {
-    if (DIST == CE3)
-    {
+    if (DIST == CE3) {
         k = 0.0125;
         qk = 1.743;
     }
-    else if (DIST == CE4)
-    {
+    else if (DIST == CE4) {
         k = 0.0021;
         qk = 0.5648 + 0.01258 / k;
     }
