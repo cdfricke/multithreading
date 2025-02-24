@@ -11,7 +11,8 @@
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "-I",
-                "${workspaceFolder}\\cpp-library"
+                "${workspaceFolder}\\cpp-library",
+                "-D WRITE_DATA"
             ],
             "options": {
                 "cwd": "C:\\msys64\\mingw64\\bin"
