@@ -29,3 +29,7 @@ $CE4 = 1
 # arguments list: SHAPE, DIST, DMIN, DMAX, DSTEP, DEPTH, AREA
 $arguments = $SPHERE, $CE3, 0.05, 3.0, 0.001, 10.0, 2500.0    
 .\build\rejection_sampling.exe $arguments
+
+# * PYTHON PLOTTING *
+# assumes you already have a virtual env activated with numpy and matplotlib installed
+python.exe .\py\plotting.py $arguments
