@@ -169,7 +169,7 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
 
     // Now we need to check that if we take any random slice in z, 
     // on average the original distributions are preserved
-    for (int i = 0; i < 1000; i++) {
+    for (int i = loopRange.first; i < loopRange.second; i++) {
         if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
             
         double z0 = P.DEPTH * RAND;
@@ -189,6 +189,8 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
     Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
     Avg_Sampled_FgtD = stats::mean(Sampled_FgtD, 0);
 
+    std::cout << "Occupied Volume Fraction = " << OccVol / (P.AREA * P.DEPTH) << std::endl;
+
     #ifdef WRITE_DATA
         using std::string, std::to_string;
         std::cout << "Writing arrays to files..." << std::endl;
@@ -205,7 +207,7 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
-        string fileName = "./data/Rock_Data_" + to_string(P.AREA) + "XY_" + to_string(P.DEPTH) + "Z_" + shapeStr + ".csv";
+        string fileName = "./data/Rock_Data_" + to_string(int(P.AREA)) + "XY_" + to_string(int(P.DEPTH)) + "Z_" + shapeStr + ".csv";
         std::ofstream fout(fileName);
         while (fout.is_open()) {
             fout << "Diameter (m),x (m),y (m),z (m)\n";
@@ -215,6 +217,7 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
             fout.close();
         }
         std::cout << "Data written to: " << fileName << std::endl;
+
     #endif
 
     return EXIT_SUCCESS;
@@ -283,7 +286,7 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
 
     // Now we need to check that if we take any random slice in z, 
     // on average the original distributions are preserved
-    for (int i = 0; i < 1000; i++) {
+    for (int i = loopRange.first; i < loopRange.second; i++) {
         if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
 
         double z0 = P.DEPTH * RAND;
@@ -298,11 +301,11 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
         Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA);
         Sampled_NgtD.push_back(SAMPLED_FGTD);
         Sampled_FgtD.push_back(SAMPLED_NGTD);
-                
     }
     Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
     Avg_Sampled_FgtD = stats::mean(Sampled_FgtD, 0);
 
+    std::cout << "Occupied Volume Fraction = " << OccVol / (P.AREA * P.DEPTH) << std::endl;
 
     #ifdef WRITE_DATA
         using std::string, std::to_string;
@@ -320,7 +323,7 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
-        string fileName = "./data/Rock_Data_" + to_string(P.AREA) + "XY_" + to_string(P.DEPTH) + "Z_" + shapeStr + ".csv";
+        string fileName = "./data/Rock_Data_" + to_string(int(P.AREA)) + "XY_" + to_string(int(P.DEPTH)) + "Z_" + shapeStr + ".csv";
         std::ofstream fout(fileName);
         while (fout.is_open()) {
             fout << "Diameter (m),b (m),h (m),x (m),y (m),z (m)\n";
