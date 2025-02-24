@@ -28,7 +28,12 @@
 #include <cstdlib>
 #include <cmath>
 #include <vector>
+#ifdef WRITE_DATA
+    #include <fstream>
+    #include <string>
+#endif
 #include "Calculus.h"
+#include "Stats.h"
 
 /* DEFINE SHAPES */
 #define SPHERE 0
@@ -59,7 +64,7 @@ static double GeoConst = 0.0;                   // INIT WITH setGeoConst();
 static double k = 0.0;                          // INIT WITH setDist();
 static double qk = 0.0;                         // INIT WITH setDist();
 
-/* FUNCTION PROTOTYPES */
+/* HELPER FUNCTION PROTOTYPES */
 void setGeoConst(int SHAPE);
 void setDist(int DIST);
 double Fk(double D);
@@ -71,27 +76,25 @@ double expintA(double x);
 double NgtD4(double D, const int SHAPE);
 double hpD(double x);
 double bpD(double x);
-
 double F_SVII(double Dmin, double Dmax);
 double n_a_SVII(double D);
 double n_V_SVII(double D);
 Vector N_SVII(double Dmin, double Dmax);
-
 Vector NgtD4_Di(double D, const double INF, const int N);
 Vector CheckNgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A);
 Vector CheckNgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A);
 Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A, const int SHAPE);
 Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A);
 
-// equivalent to np.mean(matrix, axis=0)
-Vector meanAXIS0(std::vector<Vector>& matrix);
-
+/* MAIN FUNCTION PROTOTYPES */
+int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA);
+int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA);
 
 /* MAIN PROGRAM */
 int main(int argc, char **argv)
 {
     int SHAPE, DIST;
-    double DMIN, DMAX, DEPTH, AREA; // D, Dmax, Depth, Area -> DMIN, DMAX, DEPTH, AREA 
+    double DMIN, DMAX, DEPTH, AREA;
     if (argc == 1) { // defaults
         std::cout << "Using DEFAULT Parameters..." << std::endl;
         SHAPE = SPHERE;
@@ -115,95 +118,221 @@ int main(int argc, char **argv)
         exit(5);
     }
 
-    // CRITICAL SPLIT IN FUNCTIONALITY HERE, FOR NOW ASSUME !CUBOID
-    if (SHAPE != CUBOID_A && SHAPE != CUBOID_B)
+    // CRITICAL SPLIT IN FUNCTIONALITY HERE
+    if (SHAPE == CUBOID_A || SHAPE == CUBOID_B)
     {
-        setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
-        setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+        // TODO: IMPLEMENT THIS BRANCH
+        return theBigOne_Cuboid(SHAPE, DIST, DMIN, DMAX, 0.001, DEPTH, AREA);
+    }
+    else {
+        return theBigOne_NonCuboid(SHAPE, DIST, DMIN, DMAX, 0.001, DEPTH, AREA);
+    }
+}
 
-        // calculate average diam in the space
-        using calculus::integral::monteCarlo; // integral routine
-        double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
-        std::cout << "Average Diameter: " << D_ave << std::endl;
 
-        double OccVol = 0.0, Nrocks = 0.0;
+/* MAIN FUNCTION DEFINITIONS */
+int theBigOne_NonCuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA) {
 
-        Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;  // !CUBOID
-        std::cout << "NSphere: " << Nrocks << std::endl;
+    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
+    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
 
-        // start for ii in functions:
-        Vector rocks = {};  // !CUBOID
-        CoordVector rockCoords = {}; // xyz -> rockCoords
-        std::vector<Vector> Sampled_NgtD = {};
-        std::vector<Vector> Sampled_FgtD = {};
-        Vector Avg_Sampled_NgtD = {}, Avg_Sampled_FgtD = {};
+    // calculate average diam in the space
+    using calculus::integral::monteCarlo;
+    double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
+    std::cout << "Average Diameter: " << D_ave << std::endl;
 
-        // sample the function and populate the volume with rocks
-        for (int i = 0; i < int(Nrocks); i++) {
-            if (i % 1000 == 0) {std::cout << i << '\n';}
+    double OccVol = 0.0, Nrocks = 0.0;
 
-            // THESE VARIABLE NAMES ARE HORRIBLE STOP
-            double fx = -99.0, fxmax = nDpm3(DMIN);
-            double W = fxmax, x = 0.0;
-            while (W > fx) {
-                W = fxmax * RAND;
-                x = (DMAX - DMIN) * RAND + DMIN;
-                fx = nDpm3(x);
-            }
-            // generate random coords for this iteration
-            Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
-            rockCoords.push_back(coords);
+    Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;
+    std::cout << "NSphere: " << Nrocks << std::endl;
 
-            rocks.push_back(x);
-            if (SHAPE == CUBE) {
-                OccVol += x*x*x;
-            }
-            else if (SHAPE == SPHERE) {
-                OccVol += (4.0/3)*PI*(x*x*x) / 8;
-            }
-            else {
-                std::cout << "Something went wrong! (Error 06)\n";
-                exit(6);
-            }
-            
+    // main arrays to build
+    Vector rocks = {};
+    CoordVector rockCoords = {}; // xyz
+    std::vector<Vector> Sampled_NgtD = {};
+    std::vector<Vector> Sampled_FgtD = {};
+    Vector Avg_Sampled_NgtD = {}, Avg_Sampled_FgtD = {};
+
+    // sample the function and populate the volume with rocks
+    for (int i = 0; i < int(Nrocks); i++) {
+        if (i % 1000 == 0) {std::cout << i << '\n';}
+
+        // THESE VARIABLE NAMES ARE HORRIBLE STOP
+        double fx = -99.0, fxmax = nDpm3(DMIN);
+        double W = fxmax, x = 0.0;
+        while (W > fx) {
+            W = fxmax * RAND;
+            x = (DMAX - DMIN) * RAND + DMIN;
+            fx = nDpm3(x);
         }
-        // Now we need to check that if we take any random slice in z, 
-        // on average the original distributions are preserved
-        for (int i = 0; i < 1000; i++) {
-            if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
+
+        // generate random coords for this iteration
+        Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
+        rockCoords.push_back(coords);
+        rocks.push_back(x);
+
+        if (SHAPE == CUBE) {
+            OccVol += x*x*x;
+        }
+        else if (SHAPE == SPHERE) {
+            OccVol += (4.0/3)*PI*(x*x*x) / 8;
+        }
+        else {
+            std::cout << "Something went wrong! (Error 06)\n";
+            exit(6);
+        }
+    }
+
+    // Now we need to check that if we take any random slice in z, 
+    // on average the original distributions are preserved
+    for (int i = 0; i < 1000; i++) {
+        if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
             
-            double z0 = DEPTH * RAND;
-            Vector rocksInSlice = {};
-            for (int j = 0; j < int(rocks.size()); j++) {
-                if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
-                    rocksInSlice.push_back(rocks[j]);
-                }
+        double z0 = DEPTH * RAND;
+        Vector rocksInSlice = {};
+        for (int j = 0; j < int(rocks.size()); j++) {
+            if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
+                rocksInSlice.push_back(rocks[j]);
             }
+        }
             
-            Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
-            Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
-            Sampled_NgtD.push_back(SAMPLED_FGTD);
-            Sampled_FgtD.push_back(SAMPLED_NGTD);
+        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
+        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
+        Sampled_NgtD.push_back(SAMPLED_FGTD);
+        Sampled_FgtD.push_back(SAMPLED_NGTD);
                 
-        }
-        Avg_Sampled_NgtD = meanAXIS0(Sampled_NgtD);
-        Avg_Sampled_FgtD = meanAXIS0(Sampled_FgtD);
+    }
+    Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
+    Avg_Sampled_FgtD = stats::mean(Sampled_FgtD, 0);
 
-    }
-    else if (SHAPE == CUBOID_A)
-    {
-        return EXIT_FAILURE;
-    }
-    else if (SHAPE == CUBOID_B)
-    {
-        return EXIT_FAILURE;
-    }
+
+    #ifdef WRITE_DATA
+        using std::string, std::to_string;
+        std::cout << "Writing arrays to files..." << std::endl;
+        string shapeStr;
+        if (SHAPE == SPHERE) {shapeStr = "SPHERE";}
+        else if (SHAPE == CUBE) {shapeStr = "CUBE";}
+        else {
+            std::cout << "Something went wrong! (Error 07)\n";
+            exit(7);
+        }
+        string fileName = "./data/Rock_Data_" + to_string(AREA) + "XY_" + to_string(DEPTH) + "Z_" + shapeStr + ".csv";
+        std::ofstream fout(fileName);
+        while (fout.is_open()) {
+            fout << "Diameter (m),x (m),y (m), z (m)\n";
+            for (int i = 0; i < int(rocks.size()); i++) {
+                fout << rocks[i] << ',' << rockCoords[i].x << ',' << rockCoords[i].y << ',' << rockCoords[i].z << '\n';
+            }
+            fout.close();
+        }
+        std::cout << "Data written to: " << fileName << std::endl;
+    #endif
 
     return EXIT_SUCCESS;
 }
 
+// TODO: CORRECT FUNCTIONALITY FOR CUBOID_A OR CUBOID_B
+int theBigOne_Cuboid(const int SHAPE, const int DIST, const double DMIN, const double DMAX, const double DSTEP, const double DEPTH, const double AREA) {
 
-/* FUNCTION DEFINITIONS */
+    setGeoConst(SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
+    setDist(DIST);                      // k and qk fixed for duration of main() based on DIST
+
+    // calculate average diam in the space
+    using calculus::integral::monteCarlo;
+    double D_ave = monteCarlo(DnDpm3, DMIN, DMAX, 10000) / monteCarlo(nDpm3, DMIN, DMAX, 10000);
+    std::cout << "Average Diameter: " << D_ave << std::endl;
+
+    double OccVol = 0.0, Nrocks = 0.0;
+
+    Nrocks = monteCarlo(nDpm3, DMIN, DMAX, 10000) * DEPTH * AREA;
+    std::cout << "NSphere: " << Nrocks << std::endl;
+
+    // main arrays to build
+    Vector rocks = {};
+    CoordVector rockCoords = {}; // xyz
+    std::vector<Vector> Sampled_NgtD = {};
+    std::vector<Vector> Sampled_FgtD = {};
+    Vector Avg_Sampled_NgtD = {}, Avg_Sampled_FgtD = {};
+
+    // sample the function and populate the volume with rocks
+    for (int i = 0; i < int(Nrocks); i++) {
+        if (i % 1000 == 0) {std::cout << i << '\n';}
+
+        // THESE VARIABLE NAMES ARE HORRIBLE STOP
+        double fx = -99.0, fxmax = nDpm3(DMIN);
+        double W = fxmax, x = 0.0;
+        while (W > fx) {
+            W = fxmax * RAND;
+            x = (DMAX - DMIN) * RAND + DMIN;
+            fx = nDpm3(x);
+        }
+
+        // generate random coords for this iteration
+        Coord coords = { std::sqrt(AREA) * RAND, std::sqrt(AREA) * RAND, DEPTH * RAND };
+        rockCoords.push_back(coords);
+        rocks.push_back(x);
+
+        if (SHAPE == CUBE) {
+            OccVol += x*x*x;
+        }
+        else if (SHAPE == SPHERE) {
+            OccVol += (4.0/3)*PI*(x*x*x) / 8;
+        }
+        else {
+            std::cout << "Something went wrong! (Error 06)\n";
+            exit(6);
+        }
+    }
+
+    // Now we need to check that if we take any random slice in z, 
+    // on average the original distributions are preserved
+    for (int i = 0; i < 1000; i++) {
+        if (i % 50 == 0) {std::cout << '\t' << i << '\n';}
+            
+        double z0 = DEPTH * RAND;
+        Vector rocksInSlice = {};
+        for (int j = 0; j < int(rocks.size()); j++) {
+            if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
+                rocksInSlice.push_back(rocks[j]);
+            }
+        }
+            
+        Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA);
+        Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, DMIN, DMAX, 0.001, AREA, SHAPE);
+        Sampled_NgtD.push_back(SAMPLED_FGTD);
+        Sampled_FgtD.push_back(SAMPLED_NGTD);
+                
+    }
+    Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
+    Avg_Sampled_FgtD = stats::mean(Sampled_FgtD, 0);
+
+
+    #ifdef WRITE_DATA
+        using std::string, std::to_string;
+        std::cout << "Writing arrays to files..." << std::endl;
+        string shapeStr;
+        if (SHAPE == SPHERE) {shapeStr = "SPHERE";}
+        else if (SHAPE == CUBE) {shapeStr = "CUBE";}
+        else {
+            std::cout << "Something went wrong! (Error 07)\n";
+            exit(7);
+        }
+        string fileName = "./data/Rock_Data_" + to_string(AREA) + "XY_" + to_string(DEPTH) + "Z_" + shapeStr + ".csv";
+        std::ofstream fout(fileName);
+        while (fout.is_open()) {
+            fout << "Diameter (m),x (m),y (m), z (m)\n";
+            for (int i = 0; i < int(rocks.size()); i++) {
+                fout << rocks[i] << ',' << rockCoords[i].x << ',' << rockCoords[i].y << ',' << rockCoords[i].z << '\n';
+            }
+            fout.close();
+        }
+        std::cout << "Data written to: " << fileName << std::endl;
+    #endif
+
+    return EXIT_SUCCESS;
+}
+
+/* HELPER FUNCTIONS */
 
 /* setGeoConst() */
 /* sets GeoConst global var. */
@@ -409,19 +538,4 @@ Vector N_SVII(double Dmin, double Dmax) {
         N.push_back(K * std::pow(d, -gamma));
     }
     return N;
-}
-
-Vector meanAXIS0(std::vector<Vector>& matrix) {
-    int rows = matrix.size();
-    int cols = matrix[0].size();
-    Vector avgs(cols, 0.0);
-
-    // take the average of each column (i.e. average of the i'th element of each Vector)
-    for (int j = 0; j < cols; j++) {
-        for (int i = 0; i < rows; i++) {
-            avgs[j] += matrix[i][j];
-        }
-        avgs[j] /= rows;
-    }
-    return avgs;
 }
