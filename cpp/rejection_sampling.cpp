@@ -21,7 +21,7 @@
 
 // Programmer: Connor Fricke (fricke.59@osu.edu)
 // file: rejection_sampling.cpp
-// Date: 19-FEB-2025
+// Date: 24-FEB-2025
 // Desc: C++ translation and multithreading version of Rejection_Sampling_V6.py by Payton Linton (linton.93@osu.edu)
 #include <iostream>
 #include <cstdlib>
@@ -104,8 +104,7 @@ int main(int argc, char **argv)
     ProgramParams P = setParams(argc, argv);
 
     // CRITICAL SPLIT IN FUNCTIONALITY HERE
-    if (P.SHAPE == CUBOID_A || P.SHAPE == CUBOID_B)
-    {
+    if (P.SHAPE == CUBOID_A || P.SHAPE == CUBOID_B) {
         return theBigOne_Cuboid(P, {0,1000});
     }
     else {
@@ -121,13 +120,13 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
     setDist(P.DIST);                      // k and qk fixed for duration of main() based on DIST
 
     // calculate average diam in the space
-    using calculus::integral::monteCarlo;
-    double D_ave = monteCarlo(DnDpm3, P.DMIN, P.DMAX, 10000) / monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000);
+    using calculus::integral::simpsons;
+    double D_ave = simpsons(DnDpm3, P.DMIN, P.DMAX, 10000) / simpsons(nDpm3, P.DMIN, P.DMAX, 10000);
     std::cout << "Average Diameter: " << D_ave << std::endl;
 
     double OccVol = 0.0, Nrocks = 0.0;
 
-    Nrocks = monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000) * P.DEPTH * P.AREA;
+    Nrocks = simpsons(nDpm3, P.DMIN, P.DMAX, 10000) * P.DEPTH * P.AREA;
     std::cout << "NSphere: " << Nrocks << std::endl;
 
     // main arrays to build
@@ -174,7 +173,7 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
             
         double z0 = P.DEPTH * RAND;
         Vector rocksInSlice = {};
-        for (int j = 0; j < int(rocks.size()); j++) {
+        for (size_t j = 0; j < rocks.size(); j++) {
             if (z0 > (rockCoords[j].z - rocks[j]/2.0) && z0 < (rockCoords[j].z + rocks[j]/2.0)) {
                 rocksInSlice.push_back(rocks[j]);
             }
@@ -182,8 +181,8 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
 
         Vector SAMPLED_NGTD = CheckNgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA);
         Vector SAMPLED_FGTD = CheckFgtD(rocksInSlice, P.DMIN, P.DMAX, P.DSTEP, P.AREA, P.SHAPE);
-        Sampled_NgtD.push_back(SAMPLED_FGTD);
-        Sampled_FgtD.push_back(SAMPLED_NGTD);
+        Sampled_NgtD.push_back(SAMPLED_NGTD);
+        Sampled_FgtD.push_back(SAMPLED_FGTD);
                 
     }
     Avg_Sampled_NgtD = stats::mean(Sampled_NgtD, 0);
@@ -195,28 +194,52 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
         using std::string, std::to_string;
         std::cout << "Writing arrays to files..." << std::endl;
         string shapeStr;
-        if (P.SHAPE == SPHERE)
-        {
+        if (P.SHAPE == SPHERE) {
             shapeStr = "SPHERE";
         }
-        else if (P.SHAPE == CUBE)
-        {
+        else if (P.SHAPE == CUBE) {
             shapeStr = "CUBE";
         }
         else {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
+        
+        /* WRITE ROCK DATA */
         string fileName = "./data/Rock_Data_" + to_string(int(P.AREA)) + "XY_" + to_string(int(P.DEPTH)) + "Z_" + shapeStr + ".csv";
         std::ofstream fout(fileName);
         while (fout.is_open()) {
             fout << "Diameter (m),x (m),y (m),z (m)\n";
-            for (int i = 0; i < int(rocks.size()); i++) {
+            for (size_t i = 0; i < rocks.size(); i++) {
                 fout << rocks[i] << ',' << rockCoords[i].x << ',' << rockCoords[i].y << ',' << rockCoords[i].z << '\n';
             }
             fout.close();
         }
         std::cout << "Data written to: " << fileName << std::endl;
+
+        /* WRITE SAMPLED NgtD DATA */
+        fout.open("./data/Avg_Sampled_NgtD.csv", std::ios::out);
+        if (!fout.is_open()) {
+            std::cout << "Something went wrong! Failed to open file. (Error 08)" << std::endl;
+            exit(8);
+        }
+        for (size_t i = 0; i < Avg_Sampled_NgtD.size(); i++) {
+            fout << Avg_Sampled_NgtD[i] << '\n';
+        }
+        fout.close();
+        std::cout << "Data written to: ./data/Avg_Sampled_NgtD.csv (" << Avg_Sampled_NgtD.size() << " values)" << std::endl;
+
+        /* WRITE SAMPLED FgtD DATA */
+        fout.open("./data/Avg_Sampled_FgtD.csv", std::ios::out);
+        if (!fout.is_open()) {
+            std::cout << "Something went wrong! Failed to open file. (Error 08)" << std::endl;
+            exit(8);
+        }
+        for (size_t i = 0; i < Avg_Sampled_FgtD.size(); i++) {
+            fout << Avg_Sampled_FgtD[i] << '\n';
+        }
+        fout.close();
+        std::cout << "Data written to: ./data/Avg_Sampled_FgtD.csv (" << Avg_Sampled_FgtD.size() << " values)"<< std::endl;
 
     #endif
 
@@ -229,13 +252,13 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
     setDist(P.DIST);                    // k and qk fixed for duration of main() based on DIST
 
     // calculate average diam in the space
-    using calculus::integral::monteCarlo;
-    double D_ave = monteCarlo(DnDpm3, P.DMIN, P.DMAX, 10000) / monteCarlo(nDpm3, P.DMIN, P.DMAX, 10000);
+    using calculus::integral::simpsons;
+    double D_ave = simpsons(DnDpm3, P.DMIN, P.DMAX, 10000) / simpsons(nDpm3, P.DMIN, P.DMAX, 10000);
     std::cout << "Average Diameter: " << D_ave << std::endl;
 
     double OccVol = 0.0, Nrocks = 0.0;
     double INF = 1000.0;
-    Nrocks = monteCarlo(nDpm3, P.DMIN, INF, 100000) * P.DEPTH * P.AREA;
+    Nrocks = simpsons(nDpm3, P.DMIN, INF, 1000000) * P.DEPTH * P.AREA;
     std::cout << "NSphere: " << Nrocks << std::endl;
 
     // main arrays to build
@@ -291,7 +314,7 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
 
         double z0 = P.DEPTH * RAND;
         CoordVector rocksInSlice = {};
-        for (int j = 0; j < int(rocks.size()); j++) {
+        for (size_t j = 0; j < rocks.size(); j++) {
             if (z0 > (rockCoords[j].z - rocks[j].z/2.0) && z0 < (rockCoords[j].z + rocks[j].z/2.0)) {
                 rocksInSlice.push_back(rocks[j]);
             }
@@ -323,21 +346,51 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
             std::cout << "Something went wrong! (Error 07)\n";
             exit(7);
         }
+
+        /* WRITE ROCK DATA */
         string fileName = "./data/Rock_Data_" + to_string(int(P.AREA)) + "XY_" + to_string(int(P.DEPTH)) + "Z_" + shapeStr + ".csv";
-        std::ofstream fout(fileName);
-        while (fout.is_open()) {
-            fout << "Diameter (m),b (m),h (m),x (m),y (m),z (m)\n";
-            for (int i = 0; i < int(rocks.size()); i++) {
-                fout << rocks[i].x << ',' 
-                    << rocks[i].y << ',' 
-                    << rocks[i].z << ',' 
-                    << rockCoords[i].x << ',' 
-                    << rockCoords[i].y << ',' 
-                    << rockCoords[i].z << '\n';
-            }
-            fout.close();
+        std::ofstream fout(fileName, std::ios::out);
+        if (!fout.is_open()) {
+            std::cout << "Something went wrong! Failed to open file. (Error 08)" << std::endl;
+            exit(8);
         }
+        fout << "Diameter (m),b (m),h (m),x (m),y (m),z (m)\n";
+        for (size_t i = 0; i < rocks.size(); i++) {
+            fout << rocks[i].x << ',' 
+                << rocks[i].y << ',' 
+                << rocks[i].z << ',' 
+                << rockCoords[i].x << ',' 
+                << rockCoords[i].y << ',' 
+                << rockCoords[i].z << '\n';
+        }
+        fout.close();
         std::cout << "Data written to: " << fileName << std::endl;
+
+        /* WRITE SAMPLED NgtD DATA */
+        fout.open("./data/Avg_Sampled_NgtD.csv", std::ios::out);
+        if (!fout.is_open()) {
+            std::cout << "Something went wrong! Failed to open file. (Error 08)" << std::endl;
+            exit(8);
+        }
+        for (size_t i = 0; i < Avg_Sampled_NgtD.size(); i++) {
+            fout << Avg_Sampled_NgtD[i] << '\n';
+        }
+        fout.close();
+        std::cout << "Data written to: ./data/Avg_Sampled_NgtD.csv (" << Avg_Sampled_NgtD.size() << " values)" << std::endl;
+
+        /* WRITE SAMPLED FgtD DATA */
+        fout.open("./data/Avg_Sampled_FgtD.csv", std::ios::out);
+        if (!fout.is_open()) {
+            std::cout << "Something went wrong! Failed to open file. (Error 08)" << std::endl;
+            exit(8);
+        }
+        for (size_t i = 0; i < Avg_Sampled_FgtD.size(); i++) {
+            fout << Avg_Sampled_FgtD[i] << '\n';
+        }
+        fout << Avg_Sampled_FgtD.back();
+        fout.close();
+        std::cout << "Data written to: ./data/Avg_Sampled_FgtD.csv (" << Avg_Sampled_FgtD.size() << " values)" << std::endl;
+    
     #endif
 
     return EXIT_SUCCESS;
@@ -467,12 +520,12 @@ double bpD(double x) {
 /* N is the number of samples for the integration. Larger INF requires more samples, so choose wisely */
 Vector NgtD4_Di(double D, const double INF, const int N) {
 
-    using calculus::integral::monteCarlo;
+    using calculus::integral::simpsons;
     setGeoConst(SPHERE); // TODO: CHECK WHETHER THIS IS THE RIGHT MOVE HERE
     // combined two for loops into one from Rejection_Sampling_V6.py
     Vector results = {};
     for (double d = D; d < 3.0; d += 0.001) {
-        double integral = monteCarlo(nDpm2, d, INF, N);
+        double integral = simpsons(nDpm2, d, INF, N);
         results.push_back(integral);
     }
 
