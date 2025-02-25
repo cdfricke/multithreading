@@ -24,7 +24,7 @@
 // Date: 24-FEB-2025
 // Desc: C++ translation and multithreading version of Rejection_Sampling_V6.py by Payton Linton (linton.93@osu.edu)
 #include <iostream>
-#include <cstdlib>
+#include <random>
 #include <cmath>
 #include <vector>
 #include "Calculus.h"
@@ -45,7 +45,7 @@
 #define CE4 1
 
 /* MACROS */
-#define RAND (double(std::rand())/RAND_MAX)   // RANDOM double between 0.0 and 1.0
+#define RAND distrib(gen)   // RANDOM double between 0.0 and 1.0 (generator must be seeded beforehand)
 
 /* CUSTOM TYPES */
 struct Coord {  // used for position of rocks and dimensions of cuboids
@@ -118,6 +118,11 @@ int theBigOne_NonCuboid(const ProgramParams &P, std::pair<int, int> loopRange) {
 
     setGeoConst(P.SHAPE);                 // geoConst fixed for duration of main() based on SHAPE
     setDist(P.DIST);                      // k and qk fixed for duration of main() based on DIST
+
+    // Seed the RNG
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> distrib(0.0, 1.0);
 
     // calculate average diam in the space
     using calculus::integral::simpsons;
@@ -250,6 +255,11 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
 
     setGeoConst(P.SHAPE);               // geoConst fixed for duration of main() based on SHAPE
     setDist(P.DIST);                    // k and qk fixed for duration of main() based on DIST
+
+    // Seed the RNG
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> distrib(0.0, 1.0);
 
     // calculate average diam in the space
     using calculus::integral::simpsons;
@@ -569,18 +579,19 @@ Vector CheckNgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, dou
 
 /* CheckFgtD() */
 /* NON-CUBOID VERSION -> this one requires specifying the shape */
-Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A, const int SHAPE)
-{
+Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A, const int SHAPE) {
     Vector F_area = {};
     for (double d = Dmin; d < Dmax; d += Dstep) {
         double cuml = 0.0;
         // once again, "rock" is just a diameter
-        for (double rock : rocks) {
-            if (SHAPE == CUBE) cuml += rock * rock;
-            else if (SHAPE == SPHERE) cuml += (PI / 4.0) * rock * rock;
-            else {
-                std::cout << "Something went wrong! (Error 02)\n";
-                exit(2);
+        for (double diam : rocks) {
+            if (diam >= d) {
+                if (SHAPE == CUBE) cuml += diam * diam;
+                else if (SHAPE == SPHERE) cuml += (PI / 4.0) * diam * diam;
+                else {
+                    std::cout << "Something went wrong! (Error 02)\n";
+                    exit(2);
+                }
             }
         }
         F_area.push_back(cuml / A);
@@ -588,14 +599,13 @@ Vector CheckFgtD(Vector& rocks, double Dmin, double Dmax, double Dstep, double A
     return F_area;
 }
 /* CUBOID VERSION */
-Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A)
-{
+Vector CheckFgtD(CoordVector& rocks, double Dmin, double Dmax, double Dstep, double A) {
     Vector F_area = {};
     for (double d = Dmin; d < Dmax; d += Dstep) {
         double cuml = 0.0;
         // "rock" is now a Cuboid (Coord), with x, y, and z values
         for (Coord rock : rocks) {
-            cuml += rock.x * rock.y;
+            if (rock.x >= d) cuml += rock.x * rock.y;
         }
         F_area.push_back(cuml / A);
     }

@@ -51,7 +51,7 @@ elif (DIST == 1):
     qk = 0.5648 + 0.01258 / k
 else:
     print("Something went wrong! (Distribution Invalid)")
-    exit   
+    exit()
 
 # * FUNCTIONS WE STILL NEED *
 def nDpm2(D):
@@ -83,10 +83,6 @@ while (len(Avg_Sampled_NgtD) < len(Sampled_D)):
 while (len(Avg_Sampled_FgtD) < len(Sampled_D)):
     Sampled_D = Sampled_D[:-1]
 
-print(Sampled_D[0:10])
-print(Avg_Sampled_NgtD[0:10])
-print(Avg_Sampled_FgtD[0:10])
-
 # * PLOT *
 fig, axs = plt.subplots(2,2)
 axs[0,0].plot(Sampled_D, NgtD4_Di(DMIN), label = 'Wu et al. (2021)')
@@ -96,6 +92,7 @@ axs[0,0].set_xlabel('D [m]')
 axs[0,0].set_ylabel('$Rocks/m^2$')
 axs[0,0].set_title("Number of rocks/$m^2$ with diameter > D, Area = " + str(AREA) +', Depth = ' + str(DEPTH) + ': ' + shapeStr)
 
+# BWOKEN
 axs[0,1].plot(Sampled_D, Fk_Di(Sampled_D), label = 'Wu et al. (2021)')
 axs[0,1].plot(Sampled_D, Avg_Sampled_FgtD, label = "Rejection Sampling using " + distStr)
 axs[0,1].legend()
@@ -112,6 +109,7 @@ axs[1,0].set_xlabel('D [m]')
 axs[1,0].set_ylabel('$Rocks/m^2$')
 axs[1,0].set_title("Number of rocks/$m^2$ with diameter > D Area = " + str(AREA) +', Depth = ' + str(DEPTH) + ': ' + shapeStr)
 
+# BWOKEN
 axs[1,1].plot(Sampled_D, Fk_Di(Sampled_D), label = 'Wu et al. (2021)')
 axs[1,1].plot(Sampled_D, Avg_Sampled_FgtD, label = "Rejection Sampling using " + distStr)
 axs[1,1].set_yscale('log')
