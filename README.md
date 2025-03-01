@@ -8,7 +8,7 @@ of Rejection_Sampling_v6.py by Payton Linton (linton.93@osu.edu).
 
 Dependencies:
 - G++ compiler in environment path.
-- Python 3.x Virtual Environment with Pandas, NumPy and Matplotlib packages installed.
+- _Activated_ Python 3.x Virtual Environment with Pandas, NumPy and Matplotlib packages installed.
 
 Powershell build script available in the build subdirectory `build\run_this.ps1` for Windows machines.
 No support for Linux machines right now. 
