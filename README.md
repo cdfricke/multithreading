@@ -1,18 +1,15 @@
 # multithreading
 ---
 ### by Connor Fricke
+### February 28th, 2025
 
-mini-project for learning the basics of multithreading in C++ and/or Python.
+mini-project for learning the basics of multithreading in C++ via the translation and optimization
+of Rejection_Sampling_v6.py by Payton Linton (linton.93@osu.edu).
 
-Tutorial by the Cherno: https://www.youtube.com/watch?v=wXBcwHwIt_I
+Dependencies:
+- G++ compiler in environment path.
+- Python 3.x Virtual Environment with Pandas, NumPy and Matplotlib packages installed.
 
-Tutorial by CodeBeauty: https://www.youtube.com/watch?v=xPqnoB2hjjA
-
-Git commands for managing this repo:
-
-When changes have been made to both the main repo (multithreading) and the submodule (cpp-library),
-you should call `git push` with the `--recurse-submodules=check` parameter. If you find the submodule is in a
-`detached HEAD` state, call `git push origin HEAD:main`.
-
-Powershell build script available in the build subdirectory: `build\run_this.ps1`
+Powershell build script available in the build subdirectory `build\run_this.ps1` for Windows machines.
+No support for Linux machines right now. 
 
