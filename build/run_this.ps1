@@ -7,11 +7,14 @@
 # compile with g++, show all warnings and elevate all warnings to errors
 # add my library to include path, and add the .cpp files for that library to the compilation files list
 # the -D option specifies a define, by removing it, the program won't write data to any files
-$cppFiles = "cpp\rejection_sampling.cpp", "cpp-library\Calculus.cpp", "cpp-library\Stats.cpp"
-$includeDir = "cpp-library"
+$cppFiles = "cpp\rejection_sampling.cpp", "cpp-library\Calculus.cpp", "cpp-library\Stats.cpp", ".\cpp\RejectionSampling.cpp"
+$includeDir0 = "cpp-library"
+$includeDir1 = "include"
 $executable = ".\build\rejection_sampling.exe"
 g++.exe -Wall -Werror -O3 `
--I $includeDir -D WRITE_DATA `
+-I $includeDir0 `
+-I $includeDir1 `
+-D WRITE_DATA `
 $cppFiles `
 -o $executable
 
@@ -27,7 +30,7 @@ $CE4 = 1
 # to use custom arguments to the program, append $arguments to the end of the executable
 # and likewise remove it to use default parameters
 # arguments list: SHAPE, DIST, DMIN, DMAX, DSTEP, DEPTH, AREA
-$arguments = $SPHERE, $CE3, 0.05, 3.0, 0.001, 10.0, 2500.0    
+$arguments = $CUBOID_A, $CE3, 0.05, 3.0, 0.001, 10.0, 2500.0    
 .\build\rejection_sampling.exe $arguments
 
 # * PYTHON PLOTTING *
