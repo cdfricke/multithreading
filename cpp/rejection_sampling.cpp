@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     ProgramParams P = setParams(argc, argv);
 
     // CRITICAL SPLIT IN FUNCTIONALITY HERE
-    if (P.SHAPE == CUBOID_A || P.SHAPE == CUBOID_B) {
+    if (P.SHAPE == CUBOID) {
         return theBigOne_Cuboid(P, {0,1000});
     }
     else {
@@ -280,19 +280,7 @@ int theBigOne_Cuboid(const ProgramParams& P, std::pair<int, int> loopRange) {
     #ifdef WRITE_DATA
         using std::string, std::to_string;
         std::cout << "Writing arrays to files..." << std::endl;
-        string shapeStr;
-        if (P.SHAPE == CUBOID_A)
-        {
-            shapeStr = "CUBOID_A";
-        }
-        else if (P.SHAPE == CUBOID_B)
-        {
-            shapeStr = "CUBOID_B";
-        }
-        else {
-            std::cout << "Something went wrong! (Error 07)\n";
-            exit(7);
-        }
+        string shapeStr = "CUBOID";
 
         /* WRITE ROCK DATA */
         string fileName = "./data/Rock_Data_" + to_string(int(P.AREA)) + "XY_" + to_string(int(P.DEPTH)) + "Z_" + shapeStr + ".csv";

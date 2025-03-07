@@ -240,7 +240,7 @@ print("Average Diameter: ", D_ave)
 
 Depth = 10  ## The volume being filled will be a rectangular prism, this is the z-direction
 Area = 50*50 ## Cross section of the prism
-Shape = "Sphere"  ## Shape that the scatterers will be (This determines constants when calculating volume, area, and number)
+Shape = "Cuboid"  ## Shape that the scatterers will be (This determines constants when calculating volume, area, and number)
 OccVol = 0
 
 if (Shape != "Cuboid"): ## Cuboids are special so they need to be treated differently

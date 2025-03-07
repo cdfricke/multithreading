@@ -32,10 +32,7 @@ elif SHAPE == 1:
     shapeStr = "CUBE"
     GeoConst = 1.0
 elif SHAPE == 2:
-    shapeStr = "CUBOID_A"
-    GeoConst = 1.0 / (0.8)
-elif SHAPE == 3:
-    shapeStr = "CUBOID_B"
+    shapeStr = "CUBOID"
     GeoConst = 1.0 / (0.8*0.54)
 else:
     print("Something went wrong! (Shape Invalid)")

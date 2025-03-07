@@ -38,8 +38,7 @@ void setGeoConst(int SHAPE)
 {
     if (SHAPE == SPHERE) GeoConst = 4.0 / PI;
     else if (SHAPE == CUBE) GeoConst = 1.0;
-    else if (SHAPE == CUBOID_A) GeoConst = 1.0 / (0.8);
-    else if (SHAPE == CUBOID_B) GeoConst = 1.0 / (0.8 * 0.54);
+    else if (SHAPE == CUBOID) GeoConst = 1.0 / (0.8 * 0.54);
     else { 
         std::cout << "Something went wrong! (Error 01)\n"; 
         exit(1);
@@ -128,7 +127,6 @@ double bpD(double x) {
 Vector NgtD4_Di(double D, const double INF, const int N) {
 
     using calculus::integral::simpsons;
-    setGeoConst(SPHERE); // TODO: CHECK WHETHER THIS IS THE RIGHT MOVE HERE
     // combined two for loops into one from Rejection_Sampling_V6.py
     Vector results = {};
     for (double d = D; d < 3.0; d += 0.001) {

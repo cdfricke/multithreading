@@ -15,8 +15,7 @@
     /* SHAPES */
     #define SPHERE 0
     #define CUBE 1
-    #define CUBOID_A 2
-    #define CUBOID_B 3
+    #define CUBOID 2
 
     /* DISTRIBUTIONS */
     #define CE3 0
