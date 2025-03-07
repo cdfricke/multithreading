@@ -21,8 +21,7 @@ $cppFiles `
 # * VARS *
 $SPHERE = 0
 $CUBE = 1
-$CUBOID_A = 2
-$CUBOID_B = 3
+$CUBOID = 2
 $CE3 = 0
 $CE4 = 1
 
@@ -30,7 +29,7 @@ $CE4 = 1
 # to use custom arguments to the program, append $arguments to the end of the executable
 # and likewise remove it to use default parameters
 # arguments list: SHAPE, DIST, DMIN, DMAX, DSTEP, DEPTH, AREA
-$arguments = $CUBOID_A, $CE3, 0.05, 3.0, 0.001, 10.0, 2500.0    
+$arguments = $CUBOID, $CE3, 0.05, 3.0, 0.001, 10.0, 7500.0    
 .\build\rejection_sampling.exe $arguments
 
 # * PYTHON PLOTTING *
